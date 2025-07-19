@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  useGoogleAuthMutation,
   useLoginUserMutation,
   useRegisterUserMutation,
 } from "@/features/api/authApi";
@@ -19,6 +20,9 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+
+import { useGoogleLogin } from "@react-oauth/google";
+import clsx from "clsx";
 
 const Login = () => {
   const [signupInput, setSignupInput] = useState({
@@ -64,17 +68,17 @@ const Login = () => {
   };
 
   useEffect(() => {
-    if(registerIsSuccess && registerData){
-      toast.success(registerData.message || "Signup successful.")
+    if (registerIsSuccess && registerData) {
+      toast.success(registerData.message || "Signup successful.");
     }
-    if(registerError){
+    if (registerError) {
       toast.error(registerError.data.message || "Signup Failed");
     }
-    if(loginIsSuccess && loginData){
+    if (loginIsSuccess && loginData) {
       toast.success(loginData.message || "Login successful.");
       navigate("/");
     }
-    if(loginError){ 
+    if (loginError) {
       toast.error(loginError.data.message || "login Failed");
     }
   }, [
@@ -85,6 +89,38 @@ const Login = () => {
     loginError,
     registerError,
   ]);
+
+
+  // google login 
+
+  const [googleAuth] = useGoogleAuthMutation();
+
+  const responseGoogle = async (authResult) => {
+    try {
+      if (authResult?.code) {
+        const result = await googleAuth(authResult.code).unwrap() // unwrap to get data directly
+        const { email, name} = result.user;
+        const obj = { email, name};
+        const {success:googleAuthIsSuccess,message:googleAuthMessage} = result;
+        if(googleAuthIsSuccess){
+          toast.success(googleAuthMessage || `Welcom ${name}`)
+        }else{
+          toast.error(googleAuthMessage || `Login/Singup Failed`)
+        }
+        console.log('User logged in via Google:', obj);
+      } else {
+        console.error('No code in authResult:', authResult);
+      }
+    } catch (e) {
+      console.log('Error while Google Login...', e);
+    }
+  };
+
+  const googleLogin = useGoogleLogin({
+		onSuccess: responseGoogle,
+		onError: responseGoogle,
+		flow: "auth-code",
+	});
 
   return (
     <div className="flex items-center w-full justify-center mt-20">
@@ -109,7 +145,7 @@ const Login = () => {
                   name="name"
                   value={signupInput.name}
                   onChange={(e) => changeInputHandler(e, "signup")}
-                  placeholder="Eg. patel"
+                  placeholder="Eg. Uday Bisone"
                   required="true"
                 />
               </div>
@@ -120,7 +156,7 @@ const Login = () => {
                   name="email"
                   value={signupInput.email}
                   onChange={(e) => changeInputHandler(e, "signup")}
-                  placeholder="Eg. patel@gmail.com"
+                  placeholder="Eg. uday@gmail.com"
                   required="true"
                 />
               </div>
@@ -169,7 +205,7 @@ const Login = () => {
                   name="email"
                   value={loginInput.email}
                   onChange={(e) => changeInputHandler(e, "login")}
-                  placeholder="Eg. patel@gmail.com"
+                  placeholder="Eg. uday@gmail.com"
                   required="true"
                 />
               </div>
@@ -199,6 +235,11 @@ const Login = () => {
                   "Login"
                 )}
               </Button>
+              {/* continue with google button */}
+              <button onClick={googleLogin} class="flex items-center gap-2 bg-white text-gray-800 border border-gray-300 font-medium py-2 px-4 rounded-md shadow-sm hover:shadow-md hover:border-gray-400 transition ml-2">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-5 h-5"/>
+                Continue with Google
+              </button>
             </CardFooter>
           </Card>
         </TabsContent>

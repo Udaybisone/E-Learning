@@ -34,7 +34,6 @@ const Navbar = () => {
   const logoutHandler = async () => {
     await logoutUser();
   };
-
   useEffect(() => {
     if (isSuccess) {
       toast.success(data?.message || "User log out.");

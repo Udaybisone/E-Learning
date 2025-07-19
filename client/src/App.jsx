@@ -23,6 +23,13 @@ import {
 } from "./components/ProtectedRoutes";
 import PurchaseCourseProtectedRoute from "./components/PurchaseCourseProtectedRoute";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
+const GoogleWrapper = ()=>(
+		<GoogleOAuthProvider clientId={import.meta.env.VITE_CLIENT_ID}>
+			<Login />
+		</GoogleOAuthProvider>
+	)
 
 const appRouter = createBrowserRouter([
   {
@@ -42,7 +49,7 @@ const appRouter = createBrowserRouter([
         path: "login",
         element: (
           <AuthenticatedUser>
-            <Login />
+            <GoogleWrapper />
           </AuthenticatedUser>
         ),
       },

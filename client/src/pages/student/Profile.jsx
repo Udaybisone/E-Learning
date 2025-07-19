@@ -68,7 +68,6 @@ const Profile = () => {
 
   const user = data && data.user;
 
-  console.log(user);
   
 
   return (
