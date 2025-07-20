@@ -41,7 +41,7 @@ export const googleAuth = async (req, res, next) => {
         photoUrl: picture,
       });
     }
-    console.log(user);
+    
     generateToken(res, user, `Welcome ${user.name}`);
 
   } catch (error) {
