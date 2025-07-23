@@ -26,13 +26,14 @@ const CourseDetail = () => {
   if (isError) return <h>Failed to load course details</h>;
 
   const { course, purchased } = data;
-  console.log(purchased);
+
+  const { courseTitle, coursePrice, lectures } = course;
 
   const handleContinueCourse = () => {
-    if(purchased){
-      navigate(`/course-progress/${courseId}`)
+    if (purchased) {
+      navigate(`/course-progress/${courseId}`);
     }
-  }
+  };
 
   return (
     <div className="space-y-5">
@@ -65,13 +66,21 @@ const CourseDetail = () => {
           <Card>
             <CardHeader>
               <CardTitle>Course Content</CardTitle>
-              <CardDescription>4 lectures</CardDescription>
+              <CardDescription>{`${lectures.length} lectures`}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {course.lectures.map((lecture, idx) => (
-                <div key={idx} className="flex items-center gap-3 text-sm">
+              {lectures.map((lecture, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center cursor-pointer gap-3 text-sm select-none hover:text-black-300 hover:font-medium transition-all duration-200
+                "
+                >
                   <span>
-                    {true ? <PlayCircle size={14} /> : <Lock size={14} />}
+                    {lecture.isPreviewFree ? (
+                      <PlayCircle size={14} />
+                    ) : (
+                      <Lock size={14} />
+                    )}
                   </span>
                   <p>{lecture.lectureTitle}</p>
                 </div>
@@ -90,13 +99,15 @@ const CourseDetail = () => {
                   controls={true}
                 />
               </div>
-              <h1>Lecture title</h1>
+              <h1>{courseTitle}</h1>
               <Separator className="my-2" />
-              <h1 className="text-lg md:text-xl font-semibold">Course Price</h1>
+              <h1 className="text-lg md:text-xl font-semibold">{`₹ ${coursePrice}`}</h1>
             </CardContent>
             <CardFooter className="flex justify-center p-4">
               {purchased ? (
-                <Button onClick={handleContinueCourse} className="w-full">Continue Course</Button>
+                <Button onClick={handleContinueCourse} className="w-full">
+                  Continue Course
+                </Button>
               ) : (
                 <BuyCourseButton courseId={courseId} />
               )}

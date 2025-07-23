@@ -39,14 +39,11 @@ export const createCheckoutSession = async (req, res) => {
         },
       ],
       mode: "payment",
-      success_url: `http://localhost:5173/course-progress/${courseId}`, // once payment successful redirect to course progress page
-      cancel_url: `http://localhost:5173/course-detail/${courseId}`,
+      success_url: `${process.env.FRONTEND_URL}/course-progress/${courseId}`, // once payment successful redirect to course progress page
+      cancel_url: `${process.env.FRONTEND_URL}/course-detail/${courseId}`,
       metadata: {
         courseId: courseId,
         userId: userId,
-      },
-      shipping_address_collection: {
-        allowed_countries: ["IN"], // Optionally restrict allowed countries
       },
     });
 
@@ -66,26 +63,34 @@ export const createCheckoutSession = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 export const stripeWebhook = async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  const secret = process.env.WEBHOOK_ENDPOINT_SECRET;
+
   let event;
 
   try {
-    const payloadString = JSON.stringify(req.body, null, 2);
-    const secret = process.env.WEBHOOK_ENDPOINT_SECRET;
-
-    const header = stripe.webhooks.generateTestHeaderString({
-      payload: payloadString,
-      secret,
-    });
-
-    event = stripe.webhooks.constructEvent(payloadString, header, secret);
-  } catch (error) {
-    console.error("Webhook error:", error.message);
-    return res.status(400).send(`Webhook error: ${error.message}`);
+    event = stripe.webhooks.constructEvent(req.body, sig, secret);
+  } catch (err) {
+    console.error("Webhook signature verification failed:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
+  // event:  {
+  //   "id": "evt_123456",
+  //   "type": "checkout.session.completed",
+  //   "data": {
+  //     "object": {
+  //       "id": "cs_test_ABC123",
+  //       "amount_total": 5000,
+  //       "customer_email": "user@example.com"
+  //     }
+  //   }
+  // }
 
   // Handle the checkout session completed event
   if (event.type === "checkout.session.completed") {
@@ -137,17 +142,25 @@ export const stripeWebhook = async (req, res) => {
   }
   res.status(200).send();
 };
+
 export const getCourseDetailWithPurchaseStatus = async (req, res) => {
   try {
     const { courseId } = req.params;
     const userId = req.id;
 
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ message: "Invalid courseId" });
+    }
+
     const course = await Course.findById(courseId)
       .populate({ path: "creator" })
       .populate({ path: "lectures" });
 
-    const purchased = await CoursePurchase.findOne({ userId, courseId });
-    console.log(purchased);
+    const purchased = await CoursePurchase.findOne({
+      userId,
+      courseId,
+      status: "completed",
+    });
 
     if (!course) {
       return res.status(404).json({ message: "course not found!" });
