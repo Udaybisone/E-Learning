@@ -3,7 +3,7 @@ import { Course } from "../models/course.model.js";
 import { CoursePurchase } from "../models/coursePurchase.model.js";
 import { Lecture } from "../models/lecture.model.js";
 import { User } from "../models/user.model.js";
-
+import mongoose from "mongoose";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const createCheckoutSession = async (req, res) => {
@@ -106,7 +106,7 @@ export const stripeWebhook = async (req, res) => {
       if (!purchase) {
         return res.status(404).json({ message: "Purchase not found" });
       }
-
+      
       if (session.amount_total) {
         purchase.amount = session.amount_total / 100;
       }
