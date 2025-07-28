@@ -4,6 +4,7 @@ import { CoursePurchase } from "../models/coursePurchase.model.js";
 import { Lecture } from "../models/lecture.model.js";
 import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const createCheckoutSession = async (req, res) => {
@@ -45,6 +46,9 @@ export const createCheckoutSession = async (req, res) => {
         courseId: courseId,
         userId: userId,
       },
+      // shipping_address_collection: {
+      //   allowed_countries: ["IN"], // Optionally restrict allowed countries
+      // },
     });
 
     if (!session.url) {
@@ -62,39 +66,25 @@ export const createCheckoutSession = async (req, res) => {
       url: session.url, // Return the Stripe checkout URL
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 export const stripeWebhook = async (req, res) => {
-  const sig = req.headers["stripe-signature"];
-  const secret = process.env.WEBHOOK_ENDPOINT_SECRET;
-
   let event;
-
+  
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, secret);
-  } catch (err) {
-    console.error("Webhook signature verification failed:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    const secret = process.env.WEBHOOK_ENDPOINT_SECRET;
+    const signature = req.headers["stripe-signature"];
+    event = stripe.webhooks.constructEvent(req.body, signature, secret);
+  } catch (error) {
+    console.error("Webhook error:", error.message);
+    return res.status(400).send(`Webhook error: ${error.message}`);
   }
 
-  // event:  {
-  //   "id": "evt_123456",
-  //   "type": "checkout.session.completed",
-  //   "data": {
-  //     "object": {
-  //       "id": "cs_test_ABC123",
-  //       "amount_total": 5000,
-  //       "customer_email": "user@example.com"
-  //     }
-  //   }
-  // }
-
-  // Handle the checkout session completed event
   if (event.type === "checkout.session.completed") {
-    console.log("check session complete is called");
+    console.log("Checkout session completed");
 
     try {
       const session = event.data.object;
@@ -106,13 +96,12 @@ export const stripeWebhook = async (req, res) => {
       if (!purchase) {
         return res.status(404).json({ message: "Purchase not found" });
       }
-      
+
       if (session.amount_total) {
         purchase.amount = session.amount_total / 100;
       }
       purchase.status = "completed";
 
-      // Make all lectures visible by setting `isPreviewFree` to true
       if (purchase.courseId && purchase.courseId.lectures.length > 0) {
         await Lecture.updateMany(
           { _id: { $in: purchase.courseId.lectures } },
@@ -122,17 +111,15 @@ export const stripeWebhook = async (req, res) => {
 
       await purchase.save();
 
-      // Update user's enrolledCourses
       await User.findByIdAndUpdate(
         purchase.userId,
-        { $addToSet: { enrolledCourses: purchase.courseId._id } }, // Add course ID to enrolledCourses
+        { $addToSet: { enrolledCourses: purchase.courseId._id } },
         { new: true }
       );
 
-      // Update course to add user ID to enrolledStudents
       await Course.findByIdAndUpdate(
         purchase.courseId._id,
-        { $addToSet: { enrolledStudents: purchase.userId } }, // Add user ID to enrolledStudents
+        { $addToSet: { enrolledStudents: purchase.userId } },
         { new: true }
       );
     } catch (error) {
@@ -140,8 +127,11 @@ export const stripeWebhook = async (req, res) => {
       return res.status(500).json({ message: "Internal Server Error" });
     }
   }
+
   res.status(200).send();
 };
+
+
 
 export const getCourseDetailWithPurchaseStatus = async (req, res) => {
   try {
