@@ -186,6 +186,11 @@ const Login = () => {
                   "Signup"
                 )}
               </Button>
+              {/* continue with google button */}
+              <button onClick={googleLogin} class="flex items-center gap-2 bg-white text-gray-800 border border-gray-300 font-medium py-2 px-4 rounded-md shadow-sm hover:shadow-md hover:border-gray-400 transition ml-2">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-5 h-5"/>
+                Continue with Google
+              </button>
             </CardFooter>
           </Card>
         </TabsContent>
