@@ -30,46 +30,60 @@ export const createCourse = async (req,res) => {
     }
 }
 
-export const searchCourse = async (req,res) => {
-    try {
-        const {query = "", categories = [], sortByPrice =""} = req.query;
-        console.log(categories);
-        
-        // create search query
-        const searchCriteria = {
-            isPublished:true,
-            $or:[
-                {courseTitle: {$regex:query, $options:"i"}},
-                {subTitle: {$regex:query, $options:"i"}},
-                {category: {$regex:query, $options:"i"}},
-            ]
-        }
+export const searchCourse = async (req, res) => {
+  try {
+    const { query = "", categories = [], sortByPrice = "" } = req.query;
 
-        // if categories selected
-        if(categories.length > 0) {
-            searchCriteria.category = {$in: categories};
-        }
+    // Ensure categories is an array
+    const selectedCategories = Array.isArray(categories)
+      ? categories
+      : typeof categories === "string"
+      ? categories.split(",").map(c => c.trim())
+      : [];
 
-        // define sorting order
-        const sortOptions = {};
-        if(sortByPrice === "low"){
-            sortOptions.coursePrice = 1;//sort by price in ascending
-        }else if(sortByPrice === "high"){
-            sortOptions.coursePrice = -1; // descending
-        }
+    
+    // 🎯 Combine $and and $or logic
+    const searchCriteria = {
+      isPublished: true,
+      $and: [
+        {
+          $or: [
+            { courseTitle: { $regex: query, $options: "i" } },
+            { subTitle: { $regex: query, $options: "i" } },
+            { category: { $regex: query, $options: "i" } },
+          ],
+        },
+      ],
+    };
 
-        let courses = await Course.find(searchCriteria).populate({path:"creator", select:"name photoUrl"}).sort(sortOptions);
-
-        return res.status(200).json({
-            success:true,
-            courses: courses || []
-        });
-
-    } catch (error) {
-        console.log(error);
-        
+    // If categories selected, filter by those as well
+    if (selectedCategories.length > 0) {
+      searchCriteria.$and.push({
+        category: { $in: selectedCategories },
+      });
     }
-}
+
+    // Sorting logic
+    const sortOptions = {};
+    if (sortByPrice === "low") sortOptions.coursePrice = 1;
+    else if (sortByPrice === "high") sortOptions.coursePrice = -1;
+
+    const courses = await Course.find(searchCriteria)
+      .populate({ path: "creator", select: "name photoUrl" })
+      .sort(sortOptions);
+
+    return res.status(200).json({
+      success: true,
+      courses: courses || [],
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Failed to search courses",
+    });
+  }
+};
+
 
 export const getPublishedCourse = async (_,res) => {
     try {
