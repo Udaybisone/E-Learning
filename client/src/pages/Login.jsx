@@ -22,7 +22,6 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { useGoogleLogin } from "@react-oauth/google";
-import clsx from "clsx";
 
 const Login = () => {
   const [signupInput, setSignupInput] = useState({
