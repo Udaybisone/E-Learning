@@ -24,6 +24,7 @@ import {
 import PurchaseCourseProtectedRoute from "./components/PurchaseCourseProtectedRoute";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import ChatBot from "./components/Chatbot/Chatbot";
 
 const GoogleWrapper = ()=>(
 		<GoogleOAuthProvider clientId={import.meta.env.VITE_CLIENT_ID}>
@@ -140,6 +141,7 @@ function App() {
     <main>
       <ThemeProvider>
       <RouterProvider router={appRouter} />
+      <ChatBot/>
       </ThemeProvider>
     </main>
   );
